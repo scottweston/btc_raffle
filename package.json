@@ -1,0 +1,28 @@
+{
+  "name": "btc_raffle",
+  "version": "0.1.0",
+  "description": "the Ballarat bitcoin, block-chains and beers raffle code",
+  "main": "raffle.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "raffle": "node raffle.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/scottweston/btc_raffle"
+  },
+  "keywords": [
+    "Bitcoin",
+    "raffle"
+  ],
+  "author": "Scott Weston",
+  "license": "ISC",
+  "dependencies": {
+    "async": "^1.5.2",
+    "request": "^2.72.0",
+    "shuffle-array": "^1.0.1",
+    "sleep": "^5.1.1",
+    "text-animation": "^1.2.6"
+  },
+  "devDependencies": {}
+}

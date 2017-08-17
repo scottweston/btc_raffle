@@ -4,6 +4,8 @@ const async = require('async');
 const shuffle = require('shuffle-array');
 const sleep = require('sleep');
 
+var apiKey="MY_APIKEY";
+
 var transactions = [];
 
 //each address will be added 1 time for each ticket associated with it
@@ -15,25 +17,6 @@ function log() {
     console.log.apply(this, arguments);
   }
 }
-
-function getTransaction(txhash, callback) {
-  req('https://blockexplorer.com/api/tx/' + txhash, function(err, response, body) {
-    if (!err) {
-      var txinfo = JSON.parse(body);
-      if (txinfo.error) {
-        console.log(txinfo.error);
-        process.exit(1);
-      }
-      transactions.push(txinfo);
-      callback();
-      return txinfo;
-    } else {
-      console.log("Can't get transaction info");
-      callback(err);
-    }
-  });
-}
-
 
 function processTransaction(tx) {
   console.log("Processing transaction:", tx.txid);
@@ -50,30 +33,34 @@ function processTransaction(tx) {
 }
 
 function getWinners(raffleAddress, ticketPrice, winners) {
-  req('https://blockexplorer.com/api/addr/' + raffleAddress , function(err, response, body) {
+  req('https://api.blocktrail.com/v1/BCC/address/' + raffleAddress + '/transactions?api_key=' + apiKey , function(err, response, body) {
     if (!err) {
       var addrInfo = JSON.parse(body);
-      if (addrInfo.error) {
-        console.log(addrInfo.error);
+      if (addrInfo.msg) {
+        console.log(addrInfo.msg);
         process.exit(1);
       }
-      async.eachSeries(addrInfo.transactions, getTransaction, function(err) {
-        if (err) {
-          console.log("Error processing transactions");
-          process.exit(1);
-        } else {
-          for (var tx of transactions) {
-            sleep.sleep(5);
-            processTransaction(tx);
+      addrInfo.data.forEach(function(tx) {
+        tx.outputs.forEach(function(output) {
+          if (output.address == raffleAddress) {
+            var tickets = Math.floor((output.value/100000000)/ticketPrice);
+            var input = tx.inputs[output.spent_index];
+            if (input) {
+              for(var t=0; t<tickets; t++) {
+                raffleTickets.push(input.address);
+              }
+            } else {
+              console.log("ERROR: spent_index missing from inputs");
+            }
           }
-          log("Tickets: ", raffleTickets);
-          var winner = [];
-          for (i = winners; i > 0; i--) {
-            winner.push(shuffle.pick(raffleTickets));
-          }
-          console.log("\n\nAND THE POTENTIAL WINNERS ARE:", winner);
-        }
+        });
       });
+
+      var winner = [];
+      for (i = winners; i > 0; i--) {
+        winner.push(shuffle.pick(raffleTickets));
+      }
+      console.log("\nAND THE POTENTIAL WINNERS ARE:", winner);
     } else {
       console.log('Error fetching address info');
       process.exit(1);
@@ -84,7 +71,7 @@ function getWinners(raffleAddress, ticketPrice, winners) {
 var raffleAddress, ticketPrice;
 
 if (process.argv.length != 4) {
-  console.log("Usage:\n raffle.js <raffle_address> <btc_ticket_price>");
+  console.log("Usage:\n raffle.js <raffle_address> <bch_ticket_price>");
   return;
 } else {
   raffleAddress = process.argv[2];
